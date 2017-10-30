@@ -147,10 +147,6 @@ public abstract class WorldPortal
             firstUpdate = false;
         }
         time++;
-        if(!canTeleportEntities())
-        {
-            return;
-        }
         Iterator<Map.Entry<Entity, Integer>> ite = teleportCooldown.entrySet().iterator();
         while(ite.hasNext())
         {
@@ -158,7 +154,6 @@ public abstract class WorldPortal
             e.setValue(e.getValue() - 1);
             if(e.getValue() < 0)
             {
-                WorldPortals.eventHandler.removeMonitoredEntity(e.getKey(), this);
                 ite.remove();
             }
         }
@@ -181,7 +176,7 @@ public abstract class WorldPortal
                 entitiesInRange.remove(i);
                 continue;
             }
-            if(teleportCooldown.containsKey(ent) || ent instanceof EntityPlayerMP && !ent.getEntityWorld().isRemote)
+            if(teleportCooldown.containsKey(ent) || ent instanceof EntityPlayerMP && !ent.worldObj.isRemote)
             {
                 continue;
             }
@@ -193,9 +188,9 @@ public abstract class WorldPortal
             float offset = 0.0F; //should I test player width specifically?
             if(isAgainstWall() && ent instanceof EntityPlayer)
             {
-                offset = Math.min(0.05F, (float)Math.abs((flatPlane.minX - ent.posX) * faceOn.getFrontOffsetX() + (flatPlane.minY - ent.posY) * faceOn.getFrontOffsetY() + (flatPlane.minZ - ent.posZ) * faceOn.getFrontOffsetZ()));
-                if(!scanRange.offset(faceOn.getFrontOffsetX() * offset, faceOn.getFrontOffsetY() * offset, faceOn.getFrontOffsetZ() * offset).contains(newEntPos) &&
-                        portalInsides.offset(faceOn.getFrontOffsetX() * offset, faceOn.getFrontOffsetY() * offset, faceOn.getFrontOffsetZ() * offset).contains(newEntPos) &&
+                offset = Math.min(0.325F, (float)Math.abs((flatPlane.minX - ent.posX) * faceOn.getFrontOffsetX() + (flatPlane.minY - ent.posY) * faceOn.getFrontOffsetY() + (flatPlane.minZ - ent.posZ) * faceOn.getFrontOffsetZ()));
+                if(!scanRange.offset(faceOn.getFrontOffsetX() * offset, faceOn.getFrontOffsetY() * offset, faceOn.getFrontOffsetZ() * offset).isVecInside(newEntPos) &&
+                        portalInsides.offset(faceOn.getFrontOffsetX() * offset, faceOn.getFrontOffsetY() * offset, faceOn.getFrontOffsetZ() * offset).isVecInside(newEntPos) &&
                         (faceOn.getAxis().isHorizontal() && ent.getEntityBoundingBox().minY >= flatPlane.minY && ent.getEntityBoundingBox().maxY <= flatPlane.maxY || faceOn.getAxis().isVertical()  && ent.getEntityBoundingBox().minX >= flatPlane.minX && ent.getEntityBoundingBox().maxX <= flatPlane.maxX  && ent.getEntityBoundingBox().minZ >= flatPlane.minZ && ent.getEntityBoundingBox().maxZ <= flatPlane.maxZ) // special casing cause of pushOutOfBlocks for player
                         )
                 {
@@ -205,7 +200,7 @@ public abstract class WorldPortal
             }
             else
             {
-                if(!scanRange.contains(newEntPos) && portalInsides.contains(newEntPos))
+                if(!scanRange.isVecInside(newEntPos) && portalInsides.isVecInside(newEntPos))
                 {
                     teleport = true;
                 }
@@ -219,9 +214,9 @@ public abstract class WorldPortal
 
                 if(pair != null)
                 {
-                    float[] appliedOffset = getQuaternionFormula().applyPositionalRotation(new float[] { (float)(newEntPos.x - centerX), (float)(newEntPos.y - centerY), (float)(newEntPos.z - centerZ) });
+                    float[] appliedOffset = getQuaternionFormula().applyPositionalRotation(new float[] { (float)(newEntPos.xCoord - centerX), (float)(newEntPos.yCoord - centerY), (float)(newEntPos.zCoord - centerZ) });
                     float[] appliedMotion = getQuaternionFormula().applyPositionalRotation(new float[] { (float)motions[0], (float)motions[1], (float)motions[2] });
-                    float[] appliedRotation = getQuaternionFormula().applyRotationalRotation(new float[] { ent.rotationYaw, ent.rotationPitch, ent.getEntityWorld().isRemote ? getRoll(ent) : 0F });
+                    float[] appliedRotation = getQuaternionFormula().applyRotationalRotation(new float[] { ent.rotationYaw, ent.rotationPitch, ent.worldObj.isRemote ? getRoll(ent) : 0F });
 
                     AxisAlignedBB pairTeleportPlane = pair.getTeleportPlane(offset);
 
@@ -235,7 +230,7 @@ public abstract class WorldPortal
 
                     ent.setPosition(ent.posX, ent.posY, ent.posZ);
                     double maxWidthHeight = Math.max(ent.width, ent.height);
-                    EntityHelper.putEntityWithinAABB(ent, pair.scanRange.expand(pair.faceOn.getFrontOffsetX() * -maxWidthHeight, pair.faceOn.getFrontOffsetY() * -maxWidthHeight, pair.faceOn.getFrontOffsetZ() * -maxWidthHeight));
+                    EntityHelper.putEntityWithinAABB(ent, pair.scanRange.addCoord(pair.faceOn.getFrontOffsetX() * -maxWidthHeight, pair.faceOn.getFrontOffsetY() * -maxWidthHeight, pair.faceOn.getFrontOffsetZ() * -maxWidthHeight));
 
                     ent.motionX = appliedMotion[0];
                     ent.motionY = appliedMotion[1];
@@ -266,14 +261,14 @@ public abstract class WorldPortal
                     }
                     teleportCooldown.put(ent, 3);
                     lastScanEntities.remove(ent);
-//                    if(isAgainstWall()) //now removed by the teleport cooldown
-//                    {
-//                        WorldPortals.eventHandler.removeMonitoredEntity(ent, this);
-//                    }
+                    if(isAgainstWall())
+                    {
+                        WorldPortals.eventHandler.removeMonitoredEntity(ent, this);
+                    }
 
                     handleSpecialEntities(ent);
 
-                    if(ent.getEntityWorld().isRemote)
+                    if(ent.worldObj.isRemote)
                     {
                         handleClientEntityTeleport(ent, appliedRotation);
                     }
@@ -295,10 +290,7 @@ public abstract class WorldPortal
             lastScanEntities.removeAll(entitiesInRange); // now contains entities that are out of the range. Remove this from the tracking.
             for(Entity ent : lastScanEntities)
             {
-                if(!teleportCooldown.containsKey(ent))
-                {
-                    WorldPortals.eventHandler.removeMonitoredEntity(ent, this);
-                }
+                WorldPortals.eventHandler.removeMonitoredEntity(ent, this);
             }
 
             lastScanEntities = entitiesInRange;
@@ -360,8 +352,8 @@ public abstract class WorldPortal
                     Vec3d newParticlePos = new Vec3d(particle.posX, particle.posY, particle.posZ);
 
                     float offset = (float)Math.abs((particle.prevPosX - particle.posX) * faceOn.getFrontOffsetX() * 1.5D + (particle.prevPosY - particle.posY) * faceOn.getFrontOffsetY() * 1.5D + (particle.prevPosZ - particle.posZ) * faceOn.getFrontOffsetZ() * 1.5D);
-                    boolean isRain = particle instanceof ParticleRain && faceOn == EnumFacing.UP && scanRange.contains(particlePos);
-                    if(isRain || !portalInsides.offset(faceOn.getFrontOffsetX() * offset, faceOn.getFrontOffsetY() * offset, faceOn.getFrontOffsetZ() * offset).intersects(particle.getBoundingBox()) && portalInsides.offset(faceOn.getFrontOffsetX() * offset, faceOn.getFrontOffsetY() * offset, faceOn.getFrontOffsetZ() * offset).intersects(particle.getBoundingBox().offset(particle.motionX, particle.motionY, particle.motionZ)))
+                    boolean isRain = particle instanceof ParticleRain && faceOn == EnumFacing.UP && scanRange.isVecInside(particlePos);
+                    if(isRain || !scanRange.offset(faceOn.getFrontOffsetX() * offset, faceOn.getFrontOffsetY() * offset, faceOn.getFrontOffsetZ() * offset).isVecInside(particlePos) && portalInsides.offset(faceOn.getFrontOffsetX() * offset, faceOn.getFrontOffsetY() * offset, faceOn.getFrontOffsetZ() * offset).isVecInside(newParticlePos))
                     {
                         AxisAlignedBB teleportPlane = getTeleportPlane(offset);
 
@@ -371,8 +363,8 @@ public abstract class WorldPortal
 
                         if(pair != null)
                         {
-                            float[] appliedOffset = getQuaternionFormula().applyPositionalRotation(new float[] { (float)(newParticlePos.x - centerX), (float)(newParticlePos.y - centerY), (float)(newParticlePos.z - centerZ) });
-                            float[] appliedMotion = getQuaternionFormula().applyPositionalRotation(new float[] { (float)(newParticlePos.x - particlePos.x), (float)(newParticlePos.y - particlePos.y), (float)(newParticlePos.z - particlePos.z) });
+                            float[] appliedOffset = getQuaternionFormula().applyPositionalRotation(new float[] { (float)(newParticlePos.xCoord - centerX), (float)(newParticlePos.yCoord - centerY), (float)(newParticlePos.zCoord - centerZ) });
+                            float[] appliedMotion = getQuaternionFormula().applyPositionalRotation(new float[] { (float)(newParticlePos.xCoord - particlePos.xCoord), (float)(newParticlePos.yCoord - particlePos.yCoord), (float)(newParticlePos.zCoord - particlePos.zCoord) });
 
                             AxisAlignedBB pairTeleportPlane = pair.getTeleportPlane(offset);
 
@@ -412,7 +404,7 @@ public abstract class WorldPortal
         {
             for(Entity ent : lastScanEntities)
             {
-                if(ent.getEntityBoundingBox().intersects(portalInsides))
+                if(ent.getEntityBoundingBox().intersectsWith(portalInsides))
                 {
                     EntityHelper.putEntityWithinAABB(ent, flatPlane.offset(faceOn.getFrontOffsetX() * 0.5D, faceOn.getFrontOffsetY() * 0.5D, faceOn.getFrontOffsetZ() * 0.5D));
                     ent.setPosition(ent.posX, ent.posY, ent.posZ);
@@ -457,26 +449,26 @@ public abstract class WorldPortal
         double halfW = width / 2D;
         double halfH = height / 2D;
 
-        AxisAlignedBB plane = new AxisAlignedBB(pos.x - halfW, pos.y - halfH, pos.z - size, pos.x + halfW, pos.y + halfH, pos.z + size);
+        AxisAlignedBB plane = new AxisAlignedBB(pos.xCoord - halfW, pos.yCoord - halfH, pos.zCoord - size, pos.xCoord + halfW, pos.yCoord + halfH, pos.zCoord + size);
         if(faceOn.getAxis() == EnumFacing.Axis.Y)
         {
-            plane = EntityHelper.rotateAABB(EnumFacing.Axis.X, plane, faceOn == EnumFacing.UP ? -90F : 90F, pos.x, pos.y, pos.z);
+            plane = EntityHelper.rotateAABB(EnumFacing.Axis.X, plane, faceOn == EnumFacing.UP ? -90F : 90F, pos.xCoord, pos.yCoord, pos.zCoord);
         }
-        plane = EntityHelper.rotateAABB(EnumFacing.Axis.Y, plane, faceOn.getAxis() == EnumFacing.Axis.X ? 90F : faceOn.getAxis() == EnumFacing.Axis.Y && upDir.getAxis() == EnumFacing.Axis.X ? 90F : 0F, pos.x, pos.y, pos.z).offset(faceOn.getFrontOffsetX() * getPlaneOffset(), faceOn.getFrontOffsetY() * getPlaneOffset(), faceOn.getFrontOffsetZ() * getPlaneOffset());
+        plane = EntityHelper.rotateAABB(EnumFacing.Axis.Y, plane, faceOn.getAxis() == EnumFacing.Axis.X ? 90F : faceOn.getAxis() == EnumFacing.Axis.Y && upDir.getAxis() == EnumFacing.Axis.X ? 90F : 0F, pos.xCoord, pos.yCoord, pos.zCoord).offset(faceOn.getFrontOffsetX() * getPlaneOffset(), faceOn.getFrontOffsetY() * getPlaneOffset(), faceOn.getFrontOffsetZ() * getPlaneOffset());
         return plane;
     }
 
     public AxisAlignedBB getCollisionRemovalAabbForEntity(Entity ent)
     {
         double max = Math.max(Math.max(ent.width, ent.height) + Math.sqrt(ent.motionX * ent.motionX + ent.motionY * ent.motionY + ent.motionZ * ent.motionZ), 1D);
-        return flatPlane.expand(faceOn.getFrontOffsetX() * -max, faceOn.getFrontOffsetY() * -max, faceOn.getFrontOffsetZ() * -max);
+        return flatPlane.addCoord(faceOn.getFrontOffsetX() * -max, faceOn.getFrontOffsetY() * -max, faceOn.getFrontOffsetZ() * -max);
     }
 
     public AxisAlignedBB getPortalInsides(Entity ent)
     {
         if(isAgainstWall() && ent instanceof EntityPlayer)
         {
-            float offset = Math.min(0.05F, (float)Math.abs((flatPlane.minX - ent.posX) * faceOn.getFrontOffsetX() + (flatPlane.minY - ent.posY) * faceOn.getFrontOffsetY() + (flatPlane.minZ - ent.posZ) * faceOn.getFrontOffsetZ()));
+            float offset = Math.min(0.325F, (float)Math.abs((flatPlane.minX - ent.posX) * faceOn.getFrontOffsetX() + (flatPlane.minY - ent.posY) * faceOn.getFrontOffsetY() + (flatPlane.minZ - ent.posZ) * faceOn.getFrontOffsetZ()));
             return portalInsides.offset(faceOn.getFrontOffsetX() * offset, faceOn.getFrontOffsetY() * offset, faceOn.getFrontOffsetZ() * offset);
         }
         return portalInsides;
@@ -491,8 +483,8 @@ public abstract class WorldPortal
     {
         plane = createPlaneAround(0.0125D);
         flatPlane = createPlaneAround(0);
-        scanRange = flatPlane.expand(faceOn.getFrontOffsetX() * getScanDistance(), faceOn.getFrontOffsetY() * getScanDistance(), faceOn.getFrontOffsetZ() * getScanDistance());
-        portalInsides = flatPlane.expand(faceOn.getFrontOffsetX() * -100D, faceOn.getFrontOffsetY() * -100D, faceOn.getFrontOffsetZ() * -100D);
+        scanRange = flatPlane.addCoord(faceOn.getFrontOffsetX() * getScanDistance(), faceOn.getFrontOffsetY() * getScanDistance(), faceOn.getFrontOffsetZ() * getScanDistance());
+        portalInsides = flatPlane.addCoord(faceOn.getFrontOffsetX() * -100D, faceOn.getFrontOffsetY() * -100D, faceOn.getFrontOffsetZ() * -100D);
     }
 
     public AxisAlignedBB getFlatPlane()
@@ -507,11 +499,6 @@ public abstract class WorldPortal
             return flatPlane.offset(faceOn.getFrontOffsetX() * offset, faceOn.getFrontOffsetY() * offset, faceOn.getFrontOffsetZ() * offset);
         }
         return flatPlane;
-    }
-
-    public boolean canTeleportEntities()
-    {
-        return true;
     }
 
     public HashSet<AxisAlignedBB> getCollisionBoundaries()
@@ -547,7 +534,7 @@ public abstract class WorldPortal
 
     public boolean hasPair()
     {
-        return pair != null && pair.position.y > 0D;
+        return pair != null && pair.position.yCoord > 0D;
     }
 
     public void setPair(WorldPortal portal)
@@ -597,9 +584,9 @@ public abstract class WorldPortal
         tag.setInteger("faceOn", faceOn.getIndex());
         tag.setInteger("up", upDir.getIndex());
 
-        tag.setDouble("posX", position.x);
-        tag.setDouble("posY", position.y);
-        tag.setDouble("posZ", position.z);
+        tag.setDouble("posX", position.xCoord);
+        tag.setDouble("posY", position.yCoord);
+        tag.setDouble("posZ", position.zCoord);
 
         tag.setInteger("time", time);
 
@@ -645,7 +632,7 @@ public abstract class WorldPortal
     @SideOnly(Side.CLIENT)
     public void handleClientEntityTeleport(Entity ent, float[] rotations)
     {
-        if(ent == Minecraft.getMinecraft().player)
+        if(ent == Minecraft.getMinecraft().thePlayer)
         {
             WorldPortals.eventHandlerClient.prevCameraRoll = WorldPortals.eventHandlerClient.cameraRoll = rotations[2];
             WorldPortals.channel.sendToServer(new PacketEntityLocation(ent));
@@ -656,9 +643,9 @@ public abstract class WorldPortal
     public boolean shouldRenderFront(Entity viewer, float partialTicks) //TODO THIS
     {
         Vec3d position = RendererHelper.getCameraPosition(viewer, partialTicks);
-        return faceOn.getFrontOffsetX() < 0 && position.x < flatPlane.minX || faceOn.getFrontOffsetX() > 0 && position.x > flatPlane.minX ||
-                faceOn.getFrontOffsetY() < 0 && position.y < flatPlane.minY || faceOn.getFrontOffsetY() > 0 && position.y > flatPlane.minY ||
-                faceOn.getFrontOffsetZ() < 0 && position.z < flatPlane.minZ || faceOn.getFrontOffsetZ() > 0 && position.z > flatPlane.minZ
+        return faceOn.getFrontOffsetX() < 0 && position.xCoord < flatPlane.minX || faceOn.getFrontOffsetX() > 0 && position.xCoord > flatPlane.minX ||
+                faceOn.getFrontOffsetY() < 0 && position.yCoord < flatPlane.minY || faceOn.getFrontOffsetY() > 0 && position.yCoord > flatPlane.minY ||
+                faceOn.getFrontOffsetZ() < 0 && position.zCoord < flatPlane.minZ || faceOn.getFrontOffsetZ() > 0 && position.zCoord > flatPlane.minZ
                 ;
     }
 

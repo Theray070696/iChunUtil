@@ -8,7 +8,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraftforge.client.event.EntityViewRenderEvent;
-import net.minecraftforge.client.event.PlayerSPPushOutOfBlocksEvent;
 import net.minecraftforge.client.event.RenderBlockOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
@@ -47,23 +46,14 @@ public class EventHandlerWorldPortalClient
     }
 
     @SubscribeEvent
-    public void onPushPlayerSPOutOfBlock(PlayerSPPushOutOfBlocksEvent event)
-    {
-        if(WorldPortals.eventHandler.isInPortal(event.getEntityPlayer()))
-        {
-            event.setCanceled(true);
-        }
-    }
-
-    @SubscribeEvent
     public void onRenderTick(TickEvent.RenderTickEvent event)
     {
         Minecraft mc = Minecraft.getMinecraft();
         if(event.phase == TickEvent.Phase.START)
         {
-            if(instance != mc.world)
+            if(instance != mc.theWorld)
             {
-                instance = mc.world;
+                instance = mc.theWorld;
 
                 if(renderGlobalProxy == null)
                 {
@@ -111,7 +101,7 @@ public class EventHandlerWorldPortalClient
 //        {
 //            return;
 //        }
-//        EntityPlayer lastPlayer = Minecraft.getMinecraft().player;
+//        EntityPlayer lastPlayer = Minecraft.getMinecraft().thePlayer;
 //
 //        GlStateManager.disableAlpha();
 //        GlStateManager.enableBlend();
@@ -142,7 +132,7 @@ public class EventHandlerWorldPortalClient
 //        double d2 = lastPlayer.lastTickPosZ + (lastPlayer.posZ - lastPlayer.lastTickPosZ) * (double)event.getPartialTicks();
 //        for(AxisAlignedBB aabb : aabbToRender)
 //        {
-//            RenderGlobal.drawSelectionBoundingBox(aabb.grow(0.002D).offset(-d0, -d1, -d2), r, g, b, a);
+//            RenderGlobal.drawSelectionBoundingBox(aabb.expand(0.0020000000949949026D, 0.0020000000949949026D, 0.0020000000949949026D).offset(-d0, -d1, -d2), r, g, b, a);
 //        }
 //
 //        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);

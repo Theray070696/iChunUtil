@@ -53,9 +53,10 @@ public abstract class PacketDataFragment extends AbstractPacket
     }
 
     @Override
-    public void execute(Side side, EntityPlayer player)
+    public AbstractPacket execute(Side side, EntityPlayer player)
     {
         execution(side, player);
+        return null;
     }
 
     public abstract void execution(Side side, EntityPlayer player);

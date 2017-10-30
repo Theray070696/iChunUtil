@@ -33,7 +33,7 @@ public class PacketHandlerWrapper<REQ extends AbstractPacket> extends SimpleChan
         if(side.isServer())
         {
             INetHandler netHandler = ctx.channel().attr(NetworkRegistry.NET_HANDLER).get();
-            player = ((NetHandlerPlayServer)netHandler).player;
+            player = ((NetHandlerPlayServer)netHandler).playerEntity;
         }
         else
         {
@@ -60,13 +60,27 @@ public class PacketHandlerWrapper<REQ extends AbstractPacket> extends SimpleChan
 
     public void executeMessage(AbstractPacket msg, EntityPlayer player, Side side, ChannelHandlerContext ctx)
     {
-        msg.execute(side, player);
+        AbstractPacket result = msg.execute(side, player);
+        if(result != null)//TODO remove in 1.11
+        {
+            if(side.isServer()) //server recieved the packet, send reply to client.
+            {
+                ctx.channel().attr(FMLOutboundHandler.FML_MESSAGETARGET).set(FMLOutboundHandler.OutboundTarget.PLAYER);
+                ctx.channel().attr(FMLOutboundHandler.FML_MESSAGETARGETARGS).set(player);
+                ctx.writeAndFlush(result).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+            }
+            else
+            {
+                ctx.channel().attr(FMLOutboundHandler.FML_MESSAGETARGET).set(FMLOutboundHandler.OutboundTarget.TOSERVER);
+                ctx.writeAndFlush(result).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+            }
+        }
     }
 
     @SideOnly(Side.CLIENT)
     public EntityPlayer getClientPlayer()
     {
-        return Minecraft.getMinecraft().player;
+        return Minecraft.getMinecraft().thePlayer;
     }
 
     @Override

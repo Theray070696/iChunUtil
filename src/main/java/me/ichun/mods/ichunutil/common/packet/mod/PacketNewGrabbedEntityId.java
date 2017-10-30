@@ -38,7 +38,7 @@ public class PacketNewGrabbedEntityId extends AbstractPacket
     }
 
     @Override
-    public void execute(Side side, EntityPlayer player)
+    public AbstractPacket execute(Side side, EntityPlayer player)
     {
         for(GrabHandler handler : GrabHandler.grabbedEntities.get(Side.CLIENT))
         {
@@ -57,6 +57,7 @@ public class PacketNewGrabbedEntityId extends AbstractPacket
                 }
             }
         }
+        return null;
     }
 
     @Override

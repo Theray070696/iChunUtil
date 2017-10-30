@@ -2,22 +2,20 @@ package me.ichun.mods.ichunutil.common.core;
 
 import net.minecraftforge.fml.common.FMLLog;
 import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
 
 public class Logger
 {
     public final String modName;
-    public final org.apache.logging.log4j.Logger logger;
 
     private Logger(String id)
     {
         this.modName = id;
-        this.logger = LogManager.getLogger(modName);
     }
 
     public void log(Level logLevel, String format, Object... msg)
     {
-        logger.log(logLevel, String.format(format, msg));
+        //        FMLLog.log(modName, logLevel, "[%s] " + String.valueOf(msg), modName);
+        FMLLog.log(modName, logLevel, format, msg);
     }
 
     public void log(Level logLevel, Object msg)

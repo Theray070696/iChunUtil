@@ -1,6 +1,7 @@
 package me.ichun.mods.ichunutil.common.core;
 
 import me.ichun.mods.ichunutil.client.keybind.KeyBind;
+import me.ichun.mods.ichunutil.common.block.BlockCompactPorkchop;
 import me.ichun.mods.ichunutil.common.core.config.ConfigBase;
 import me.ichun.mods.ichunutil.common.core.config.ConfigHandler;
 import me.ichun.mods.ichunutil.common.core.event.EventHandlerServer;
@@ -14,12 +15,13 @@ import me.ichun.mods.ichunutil.common.thread.ThreadGetResources;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemBlock;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.translation.I18n;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.registry.EntityRegistry;
+import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.oredict.OreDictionary;
@@ -33,7 +35,10 @@ public class ProxyCommon
         iChunUtil.eventHandlerServer = new EventHandlerServer();
         MinecraftForge.EVENT_BUS.register(iChunUtil.eventHandlerServer);
 
-        EntityRegistry.registerModEntity(new ResourceLocation("ichunutil", "entity_block"), EntityBlock.class, "EntityBlock", 500, iChunUtil.instance, 160, 20, true);
+        iChunUtil.blockCompactPorkchop = GameRegistry.register(new BlockCompactPorkchop());
+        GameRegistry.register(new ItemBlock(iChunUtil.blockCompactPorkchop).setRegistryName(iChunUtil.blockCompactPorkchop.getRegistryName()));
+
+        EntityRegistry.registerModEntity(EntityBlock.class, "EntityBlock", 500, iChunUtil.instance, 160, 20, true);
 
         iChunUtil.channel = new PacketChannel(iChunUtil.MOD_ID, PacketSession.class, PacketPatronInfo.class, PacketPatrons.class, PacketUserShouldShowUpdates.class, PacketBlockEntityData.class, PacketNewGrabbedEntityId.class, PacketRequestBlockEntityData.class);
     }
@@ -104,8 +109,6 @@ public class ProxyCommon
     {
         return null;
     }
-
-    public void rebuildRecipeTable(){}
 
     @SideOnly(Side.CLIENT)
     public KeyBind registerKeyBind(KeyBind bind, KeyBind replacing) { return bind; }

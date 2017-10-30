@@ -14,12 +14,17 @@ import me.ichun.mods.ichunutil.common.core.util.ObfHelper;
 import me.ichun.mods.ichunutil.common.module.update.UpdateChecker;
 import me.ichun.mods.ichunutil.common.module.worldportals.common.WorldPortals;
 import net.minecraft.block.Block;
+import net.minecraft.client.Minecraft;
+import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.crafting.CraftingManager;
+import net.minecraft.item.crafting.ShapedRecipes;
 import net.minecraftforge.common.ForgeVersion;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.*;
+import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 
 import java.io.File;
@@ -28,20 +33,19 @@ import java.util.List;
 
 @Mod(modid = iChunUtil.MOD_ID, name = iChunUtil.MOD_NAME,
         version = iChunUtil.VERSION,
-        guiFactory = iChunUtil.GUI_CONFIG_FACTORY,
-        dependencies = "required-after:forge@[" + iChunUtil.REQ_FORGE_MAJOR + "." + iChunUtil.REQ_FORGE_MINOR + "." + iChunUtil.REQ_FORGE_REVISION + "." + iChunUtil.REQ_FORGE_BUILD + ",99999." + (iChunUtil.REQ_FORGE_MINOR + 1) + ".0.0)",
+        guiFactory = "me.ichun.mods.ichunutil.common.core.config.GenericModGuiFactory",
+        dependencies = "required-after:Forge@[" + iChunUtil.REQ_FORGE_MAJOR + "." + iChunUtil.REQ_FORGE_MINOR + "." + iChunUtil.REQ_FORGE_REVISION + "." + iChunUtil.REQ_FORGE_BUILD + ",99999." + (iChunUtil.REQ_FORGE_MINOR + 1) + ".0.0)",
         acceptableRemoteVersions = "[" + iChunUtil.VERSION_MAJOR + "." + iChunUtil.VERSION_MINOR + ".0," + iChunUtil.VERSION_MAJOR + "." + (iChunUtil.VERSION_MINOR + 1) + ".0)",
-        acceptedMinecraftVersions = iChunUtil.MC_VERSION_RANGE
+        acceptedMinecraftVersions = "[1.9.4,1.10.2]"
 )
 //hashmap.put(Type.SKIN, new MinecraftProfileTexture(String.format("http://skins.minecraft.net/MinecraftSkins/%s.png", new Object[] { StringUtils.stripControlCodes(p_152790_1_.getName()) }), null));
 public class iChunUtil
 {
     //Stuff to bump every updateWorldPortal
-    public static final String VERSION_OF_MC = "1.12.2";
-    public static final String MC_VERSION_RANGE = "[1.12,1.13)";
-    public static final int VERSION_MAJOR = 7;
-    public static final int VERSION_MINOR = 0;
-    public static final String VERSION = VERSION_MAJOR + "." + VERSION_MINOR + ".2";
+    public static final String VERSION_OF_MC = "1.10.2";
+    public static final int VERSION_MAJOR = 6;
+    public static final int VERSION_MINOR = 5;
+    public static final String VERSION = VERSION_MAJOR + "." + VERSION_MINOR + ".0";
 
     public static final String MOD_NAME = "iChunUtil";
     public static final String MOD_ID = "ichunutil";
@@ -52,8 +56,6 @@ public class iChunUtil
     public static final int REQ_FORGE_BUILD = 2151;
 
     public static final Logger LOGGER = Logger.createLogger(MOD_NAME);
-
-    public static final String GUI_CONFIG_FACTORY = "me.ichun.mods.ichunutil.common.core.config.GenericModGuiFactory";
 
     @Mod.Instance(MOD_ID)
     public static iChunUtil instance;
@@ -116,11 +118,6 @@ public class iChunUtil
         @IntMinMax(min = 0, max = 35)
         public int versionSave = 0;
 
-        //Head model tracking module
-        @ConfigProp(module = "headTracking", side = Side.CLIENT, hidden = true)
-        @IntBool
-        public int aggressiveHeadTracking = 0;
-
         //World Portals module
         @ConfigProp(module = "worldPortals", side = Side.CLIENT, hidden = true)
         @IntMinMax(min = 0, max = 10)
@@ -154,6 +151,16 @@ public class iChunUtil
         public String getModName()
         {
             return iChunUtil.MOD_NAME;
+        }
+
+        @Override
+        public void onReceiveSession()
+        {
+            List<ItemStack> compactPorkchops = oreDictBlockCompactRawPorkchop;
+            if(compactPorkchops.size() == 1 && compactPorkchops.get(0).getItem() != null && Block.getBlockFromItem(compactPorkchops.get(0).getItem()) == blockCompactPorkchop) //Only handle the recipe if it's the only oredict entry for the block.
+            {
+                Minecraft.getMinecraft().addScheduledTask(iChunUtil::setupCompactPorkchopRecipe);
+            }
         }
 
         @Override
@@ -200,6 +207,7 @@ public class iChunUtil
     public void onServerStarted(FMLServerStartedEvent event)
     {
         UpdateChecker.serverStarted();
+        setupCompactPorkchopRecipe();
     }
 
     @Mod.EventHandler
@@ -207,6 +215,25 @@ public class iChunUtil
     {
         eventHandlerServer.shuttingDownServer();
         WorldPortals.onServerStopping();
+    }
+
+    public static void setupCompactPorkchopRecipe()
+    {
+        if(isCompactPorkchopRecipeAdded != (config.enableCompactPorkchop == 1))
+        {
+            if(isCompactPorkchopRecipeAdded) //remove the recipe
+            {
+                ItemStack isPorkchop = new ItemStack(blockCompactPorkchop);
+                List recipes = CraftingManager.getInstance().getRecipeList();
+                recipes.removeIf(recipe -> recipe instanceof ShapedRecipes && ((ShapedRecipes)recipe).getRecipeOutput().isItemEqual(isPorkchop));
+            }
+            else //add the recipe
+            {
+                GameRegistry.addRecipe(new ItemStack(blockCompactPorkchop), "PPP", "PPP", "PPP", 'P', Items.PORKCHOP);
+                GameRegistry.addShapelessRecipe(new ItemStack(Items.PORKCHOP, 9), blockCompactPorkchop);
+            }
+            isCompactPorkchopRecipeAdded = (config.enableCompactPorkchop == 1);
+        }
     }
 
     public static boolean hasPostInit()

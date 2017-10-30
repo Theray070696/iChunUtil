@@ -30,7 +30,7 @@ public class WindowAnnoy extends Window
             {
                 VARIABLE_LEVEL = 0;
                 mc = Minecraft.getMinecraft();
-                fontRenderer = mc.fontRenderer;
+                fontRendererObj = mc.fontRendererObj;
             }
         }, 0, 0, 300, 90, 300, 90, "window.popup.title", true);
 

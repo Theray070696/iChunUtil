@@ -37,15 +37,16 @@ public class PacketBlockEntityData extends AbstractPacket
     }
 
     @Override
-    public void execute(Side side, EntityPlayer player)
+    public AbstractPacket execute(Side side, EntityPlayer player)
     {
-        Entity ent = player.getEntityWorld().getEntityByID(id);
+        Entity ent = player.worldObj.getEntityByID(id);
         if(ent instanceof EntityBlock)
         {
             EntityBlock block = (EntityBlock)ent;
             block.readFromNBT(tag);
             block.setup = true;
         }
+        return null;
     }
 
     @Override

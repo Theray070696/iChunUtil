@@ -54,13 +54,14 @@ public class PacketPatrons extends AbstractPacket
     }
 
     @Override
-    public void execute(Side side, EntityPlayer player)
+    public AbstractPacket execute(Side side, EntityPlayer player)
     {
         for(PatronInfo info : patrons)
         {
             PatronEffectRenderer.patrons.remove(info); //purge the old version of info.
             PatronEffectRenderer.patrons.add(info);
         }
+        return null;
     }
 
     @Override

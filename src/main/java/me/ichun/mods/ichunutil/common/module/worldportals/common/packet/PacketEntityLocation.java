@@ -105,16 +105,16 @@ public class PacketEntityLocation extends AbstractPacket
     }
 
     @Override
-    public void execute(Side side, EntityPlayer player)
+    public AbstractPacket execute(Side side, EntityPlayer player)
     {
-        Entity ent = player.getEntityWorld().getEntityByID(id);
-        if(ent != null && !(player.getEntityWorld().isRemote && player == ent))
+        Entity ent = player.worldObj.getEntityByID(id);
+        if(ent != null && !(player.worldObj.isRemote && player == ent))
         {
             ent.setLocationAndAngles(x, y, z, yaw, pitch);
             ent.motionX = mX;
             ent.motionY = mY;
             ent.motionZ = mZ;
-            if(!player.getEntityWorld().isRemote)
+            if(!player.worldObj.isRemote)
             {
                 if(ent instanceof EntityPlayerMP && ent == player)
                 {
@@ -180,6 +180,7 @@ public class PacketEntityLocation extends AbstractPacket
                 }
             }
         }
+        return null;
     }
 
     @Override

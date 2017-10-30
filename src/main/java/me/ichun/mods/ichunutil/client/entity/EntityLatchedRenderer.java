@@ -1,6 +1,5 @@
 package me.ichun.mods.ichunutil.client.entity;
 
-import me.ichun.mods.ichunutil.common.iChunUtil;
 import me.ichun.mods.ichunutil.common.module.worldportals.client.render.WorldPortalRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
@@ -25,7 +24,7 @@ public class EntityLatchedRenderer extends Entity
     {
         super(par1World);
         setSize(0.1F, 0.1F);
-        lastUpdate = iChunUtil.eventHandlerClient.ticks;
+        lastUpdate = par1World.getWorldTime();
         maxDeathPersistTime = currentDeathPersistTime = 0;
     }
 
@@ -35,7 +34,7 @@ public class EntityLatchedRenderer extends Entity
         setSize(ent.width * 0.75F, ent.height * 0.75F);
         latchedEnt = ent;
         setLocationAndAngles(latchedEnt.posX, latchedEnt.posY, latchedEnt.posZ, latchedEnt.rotationYaw, latchedEnt.rotationPitch);
-        lastUpdate = iChunUtil.eventHandlerClient.ticks;
+        lastUpdate = par1World.getWorldTime();
     }
 
     public EntityLatchedRenderer setIgnoreFrustumCheck()
@@ -130,7 +129,7 @@ public class EntityLatchedRenderer extends Entity
 
         MinecraftForge.EVENT_BUS.post(new EntityLatchedRendererUpdateEvent(this));
 
-        lastUpdate = iChunUtil.eventHandlerClient.ticks;
+        lastUpdate = worldObj.getWorldTime();
     }
 
     @Override
@@ -141,13 +140,13 @@ public class EntityLatchedRenderer extends Entity
 
     @Override
     @SideOnly(Side.CLIENT)
-    public int getBrightnessForRender()
+    public int getBrightnessForRender(float par1)
     {
         if(WorldPortalRenderer.renderLevel >= 1 && latchedEnt == Minecraft.getMinecraft().getRenderViewEntity())
         {
-            return super.getBrightnessForRender();
+            return super.getBrightnessForRender(par1);
         }
-        return latchedEnt.getBrightnessForRender();
+        return latchedEnt.getBrightnessForRender(par1);
     }
 
     @Override

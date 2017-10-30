@@ -8,7 +8,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.MoverType;
 import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -60,21 +59,21 @@ public class GrabHandler
         Vec3d look = grabber.getLookVec(); //this is getLook(1.0F);
         grabber.rotationYawHead -= yawTweak;
         grabber.rotationPitch -= pitchTweak;
-        Vec3d grabPos = new Vec3d(pos.x + (look.x * grabDistance), pos.y + (look.y * grabDistance), pos.z + (look.z * grabDistance));
+        Vec3d grabPos = new Vec3d(pos.xCoord + (look.xCoord * grabDistance), pos.yCoord + (look.yCoord * grabDistance), pos.zCoord + (look.zCoord * grabDistance));
 
         float distTolerance = grabToleranceTillTeleport();
-        if(distTolerance > 0.0F && grabbed.getDistance(grabPos.x, grabPos.y, grabPos.z) > distTolerance) //if grabbed is too far from the grabbed position, teleport to grabber and move to grabbed position?
+        if(distTolerance > 0.0F && grabbed.getDistance(grabPos.xCoord, grabPos.yCoord, grabPos.zCoord) > distTolerance) //if grabbed is too far from the grabbed position, teleport to grabber and move to grabbed position?
         {
             grabbed.lastTickPosX = grabbed.prevPosX = grabbed.posX = grabber.posX;
             grabbed.lastTickPosY = grabbed.prevPosY = grabbed.posY = grabber.posY;
             grabbed.lastTickPosZ = grabbed.prevPosZ = grabbed.posZ = grabber.posZ;
             grabbed.setLocationAndAngles(grabbed.posX, grabbed.posY, grabbed.posZ, grabbed.rotationYaw, grabbed.rotationPitch);
 
-            EntityHelper.setVelocity(grabbed, (grabPos.x - grabbed.posX), (grabPos.y - ((grabbed.getEntityBoundingBox().minY + grabbed.getEntityBoundingBox().maxY) / 2D)), (grabPos.z - grabbed.posZ));
-            grabbed.move(MoverType.SELF, grabbed.motionX, grabbed.motionY, grabbed.motionZ);
+            EntityHelper.setVelocity(grabbed, (grabPos.xCoord - grabbed.posX), (grabPos.yCoord - ((grabbed.getEntityBoundingBox().minY + grabbed.getEntityBoundingBox().maxY) / 2D)), (grabPos.zCoord - grabbed.posZ));
+            grabbed.moveEntity(grabbed.motionX, grabbed.motionY, grabbed.motionZ);
             grabbed.setLocationAndAngles(grabbed.posX, grabbed.posY, grabbed.posZ, grabbed.rotationYaw, grabbed.rotationPitch);
         }
-        EntityHelper.setVelocity(grabbed, (grabPos.x - grabbed.posX), (grabPos.y - ((grabbed.getEntityBoundingBox().minY + grabbed.getEntityBoundingBox().maxY) / 2D)), (grabPos.z - grabbed.posZ));
+        EntityHelper.setVelocity(grabbed, (grabPos.xCoord - grabbed.posX), (grabPos.yCoord - ((grabbed.getEntityBoundingBox().minY + grabbed.getEntityBoundingBox().maxY) / 2D)), (grabPos.zCoord - grabbed.posZ));
         grabbed.fallDistance = -(float)(grabbed.motionY * grabbed.motionY);
         grabbed.onGround = false;
         grabbed.isAirBorne = true;
@@ -100,7 +99,7 @@ public class GrabHandler
 
     public boolean shouldTerminate()
     {
-        return forceTerminate || grabber != null && grabbed != null && (grabbed.isDead || !grabber.isEntityAlive() || grabbed == grabber.getRidingEntity() || grabbed.dimension != grabber.dimension || grabbed.getDistance(grabber) > grabDistance + (grabToleranceTillTeleport() * 1.25D)); //if the enderman is >5D of grab distance, let go of it.
+        return forceTerminate || grabber != null && grabbed != null && (grabbed.isDead || !grabber.isEntityAlive() || grabbed == grabber.getRidingEntity() || grabbed.dimension != grabber.dimension || grabbed.getDistanceToEntity(grabber) > grabDistance + (grabToleranceTillTeleport() * 1.25D)); //if the enderman is >5D of grab distance, let go of it.
     }
 
     public boolean canSendAcrossDimensions()
@@ -116,12 +115,12 @@ public class GrabHandler
     @SideOnly(Side.CLIENT)
     public void getIDs()
     {
-        WorldClient client = Minecraft.getMinecraft().world;
+        WorldClient client = Minecraft.getMinecraft().theWorld;
         if(grabber == null)
         {
             if(grabberId == -1)
             {
-                grabber = Minecraft.getMinecraft().player;
+                grabber = Minecraft.getMinecraft().thePlayer;
             }
             else
             {
